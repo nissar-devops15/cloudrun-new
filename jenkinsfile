@@ -1,0 +1,50 @@
+pipeline {
+    agnet any
+    enviroment{
+        PROJECT_ID = 'solid-drive-452217-q6'
+        GOOGLE_APPLICATION_CREDENTIALS = CREDENTIALS ('service_account')
+        DOCKER_HUB_CRREDENTIALS_USR = 'nissardocker94'
+        IMAGE_NAME = 'cloudrunimage'
+        DOCKER_HUB_CREDENTIALS_PSWD = CREDENTIALS ('Docker_hub_pwd') 
+    }
+    stages {
+        stage('clone Repository'){
+            steps {
+                git branch: 'main', url:'https://github.com/nissar-devops15/cloudrun-new.git'
+            }
+        }
+        stage('build docker image') {
+            steps{
+                script{
+                    sh "docker build -t ${DOCKER_HUB_CREDENTIALS-USR}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                }
+            }
+    
+        }
+        stage('push docker image to docker hub') {
+            steps{
+                withCredential([usernamePassword(credentialsId: 'Docker_hub_pwd', usernameVariable: 'DOCKER_USERNAME', password)])
+                sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+            }
+            sh "docker push ${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER}"
+        }
+        stage('deploy to google cloud run') {
+            steps{
+                script{
+                    withCredential([file(credentialsId:'service_account', variable:'GOOGLE_APPLICATION_CREDENTIALS')])
+                }
+                sh "gcloud config set project ${PROJECT_ID}"
+                sh "gcloud run deploy #${IMAGE_NAME}\ 
+                --image docker.io/${DOCKER_HUB_CRREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER}\
+                --Platform managed\
+                --region US-Central1\
+                --allow-unauthenticated"
+
+                sh "gcloud run services add-IAM-policy-binding ${IMAGE_NAME}\
+                --region US-CENTRAL1
+                --member = 'allusers'
+                --role ='roles/run.invoker'"
+            }
+        }
+    }
+}
