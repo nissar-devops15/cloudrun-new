@@ -40,7 +40,7 @@ pipeline {
                 }
             }
         }
-        stage('Push Docker Image to Docker Hub') {
+    stage('Push Docker Image to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'Docker_hub_pwd', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     // Docker login
@@ -54,11 +54,11 @@ pipeline {
                 }
             }
         }
-    }
-}
 
 
-        stage('Deploy to Google Cloud Run') {
+
+
+    stage('Deploy to Google Cloud Run') {
             steps {
                 script {
                     // Use credentials for Google Cloud Service Account JSON file
