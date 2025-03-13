@@ -8,9 +8,9 @@ pipeline {
         DOCKER_HUB_CREDENTIALS_PSWD = CREDENTIALS ('Docker_hub_pwd') 
     }
     stages {
-        stage('clone Repository'){
+        stage('Clone Repository') {
             steps {
-                git branch: 'main', url:'https://github.com/nissar-devops15/cloudrun-new.git'
+                git branch: 'main', url: 'https://github.com/nissar-devops15/cloudrun-new.git'
             }
         }
         stage('build docker image') {
