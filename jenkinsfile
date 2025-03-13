@@ -25,17 +25,38 @@ pipeline {
             }
         }
 
+        pipeline {
+    agent any
+    environment {
+        DOCKER_HUB_CREDENTIALS_USR = 'nissardocker94'  // Your Docker Hub username
+        IMAGE_NAME = 'cloudrunimage'  // Your image name
+    }
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image with a dynamic tag
+                    sh "docker build -t ${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER} ."
+                }
+            }
+        }
         stage('Push Docker Image to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'Docker_hub_pwd', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     // Docker login
                     sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
                     
+                    // List available Docker images (optional debugging step)
+                    sh "docker images"
+                    
                     // Push the image to Docker Hub
                     sh "docker push ${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER}"
                 }
             }
         }
+    }
+}
+
 
         stage('Deploy to Google Cloud Run') {
             steps {
