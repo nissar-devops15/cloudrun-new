@@ -1,49 +1,68 @@
 pipeline {
-    agnet any
-    enviroment{
+    agent any
+    
+    environment {
         PROJECT_ID = 'solid-drive-452217-q6'
-        GOOGLE_APPLICATION_CREDENTIALS = CREDENTIALS ('service_account')
-        DOCKER_HUB_CRREDENTIALS_USR = 'nissardocker94'
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('service_account')  // Corrected CREDENTIALS function usage
+        DOCKER_HUB_CREDENTIALS_USR = 'nissardocker94'
         IMAGE_NAME = 'cloudrunimage'
-        DOCKER_HUB_CREDENTIALS_PSWD = CREDENTIALS ('Docker_hub_pwd') 
+        DOCKER_HUB_CREDENTIALS_PSWD = credentials('Docker_hub_pwd')  // Corrected credentials usage
     }
+    
     stages {
         stage('Clone Repository') {
             steps {
                 git branch: 'main', url: 'https://github.com/nissar-devops15/cloudrun-new.git'
             }
         }
-        stage('build docker image') {
-            steps{
-                script{
-                    sh "docker build -t ${DOCKER_HUB_CREDENTIALS-USR}/${IMAGE_NAME}:${BUILD_NUMBER}"
-                }
-            }
-    
-        }
-        stage('push docker image to docker hub') {
-            steps{
-                withCredential([usernamePassword(credentialsId: 'Docker_hub_pwd', usernameVariable: 'DOCKER_USERNAME', password)])
-                sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
-            }
-            sh "docker push ${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER}"
-        }
-        stage('deploy to google cloud run') {
-            steps{
-                script{
-                    withCredential([file(credentialsId:'service_account', variable:'GOOGLE_APPLICATION_CREDENTIALS')])
-                }
-                sh "gcloud config set project ${PROJECT_ID}"
-                sh "gcloud run deploy #${IMAGE_NAME}\ 
-                --image docker.io/${DOCKER_HUB_CRREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER}\
-                --Platform managed\
-                --region US-Central1\
-                --allow-unauthenticated"
 
-                sh "gcloud run services add-IAM-policy-binding ${IMAGE_NAME}\
-                --region US-CENTRAL1
-                --member = 'allusers'
-                --role ='roles/run.invoker'"
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Building the docker image with dynamic tag
+                    sh "docker build -t ${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER} ."
+                }
+            }
+        }
+
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'Docker_hub_pwd', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    // Docker login
+                    sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+                    
+                    // Push the image to Docker Hub
+                    sh "docker push ${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                }
+            }
+        }
+
+        stage('Deploy to Google Cloud Run') {
+            steps {
+                script {
+                    // Use credentials for Google Cloud Service Account JSON file
+                    withCredentials([file(credentialsId: 'service_account', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                        // Set the Google Cloud project
+                        sh "gcloud config set project ${PROJECT_ID}"
+
+                        // Deploy the Docker image to Google Cloud Run
+                        sh """
+                            gcloud run deploy ${IMAGE_NAME} \\
+                                --image docker.io/${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER} \\
+                                --platform managed \\
+                                --region us-central1 \\
+                                --allow-unauthenticated
+                        """
+
+                        // Set IAM policy to allow all users to invoke the service
+                        sh """
+                            gcloud run services add-iam-policy-binding ${IMAGE_NAME} \\
+                                --region us-central1 \\
+                                --member 'allUsers' \\
+                                --role 'roles/run.invoker'
+                        """
+                    }
+                }
             }
         }
     }
