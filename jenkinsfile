@@ -43,26 +43,26 @@ pipeline {
             steps {
                 script {
                     // Use credentials for Google Cloud Service Account JSON file
-                    withCredentials([file(credentialsId: 'service_account', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    withCredentials([file(credentialsId:'service_account', variable:'GOOGLE_APPLICATION_CREDENTIALS')]) {
                         // Set the Google Cloud project
                         sh "gcloud config set project ${PROJECT_ID}"
 
                         // Deploy the Docker image to Google Cloud Run
-                        sh """
-                            gcloud run deploy ${IMAGE_NAME} \\
-                                --image docker.io/${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER} \\
-                                --platform managed \\
-                                --region us-central1 \\
+                        sh "
+                            gcloud run deploy ${IMAGE_NAME} \
+                                --image docker.io/${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER} \
+                                --platform managed \
+                                --region us-central1 \
                                 --allow-unauthenticated
-                        """
+                         "
 
                         // Set IAM policy to allow all users to invoke the service
-                        sh """
-                            gcloud run services add-iam-policy-binding ${IMAGE_NAME} \\
-                                --region us-central1 \\
-                                --member 'allUsers' \\
+                        sh "
+                            gcloud run services add-iam-policy-binding ${IMAGE_NAME} \
+                                --region us-central1 \
+                                --member 'allUsers' \
                                 --role 'roles/run.invoker'
-                        """
+                        "
                     }
                 }
             }
