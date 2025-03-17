@@ -30,7 +30,7 @@ pipeline {
                 script{
                     // Docker login
                     withCredentials([usernamePassword(credentialsId:'Docker_hub_pwd', usernameVariable:'DOCKER_USERNAME', passwordVariable:'DOCKER_PASSWORD')]) {
-                        sh "echo $DOCKER_PASSWORD | docker_login -u $DOCKER_USERNAME --password-stdin"
+                        sh "echo \$DOCKER_PASSWORD | docker_login -u \$DOCKER_USERNAME --password-stdin"
                    }
                  
                     // Push the image to Docker Hub
